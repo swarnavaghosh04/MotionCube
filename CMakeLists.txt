@@ -47,6 +47,10 @@ add_compile_options("${_opts}")
 
 add_executable(MotionCube)
 
-target_sources(MotionCube PRIVATE cube.cpp)
+target_sources(MotionCube PRIVATE MotionCubeDesktop.cpp)
 target_include_directories(MotionCube PRIVATE ${asio_incl})
 target_link_libraries(MotionCube PRIVATE GLider::GLider "ws2_32")
+
+install(
+	TARGETS MotionCube
+)

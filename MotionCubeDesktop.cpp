@@ -91,7 +91,10 @@ struct Cube{
 
         void main(){
 
+            // Calibration
             vec4 correct_rot = quat_mult(quat_inv(def_orientation), orientation);
+
+            // Actual orientation
             gl_Position = u_mat * quat_rot(position, correct_rot);
 
         }
@@ -236,7 +239,6 @@ struct Cube{
                 6,
                 drawCounter);
             drawCounter += 6;
-
         };
 
         draw_square_with_color(glm::vec4(1.0, 0.0, 0.0, 1.0));

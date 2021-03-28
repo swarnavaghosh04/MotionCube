@@ -1,14 +1,38 @@
-#include "GLider/GLider.hpp"
+/* ============================================
+The MIT License (MIT)
+
+Copyright (c) 2021 Swarnava Ghosh
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+===============================================
+*/
+
+#include <GLider/GLider.hpp>
 #include <asio.hpp>
+#include <cstdio>
 #include <thread>
-#include <cmath>
-#include <vector>
+#include <atomic>
 #include <array>
 #include <chrono>
 #include <stdexcept>
 
-bool keepRunning = true;
-std::mutex keepRunning_mutex;
+std::atomic<bool> keepRunning{true};
 
 static std::exception_ptr teptr = nullptr;
 
@@ -98,7 +122,7 @@ struct Cube{
     asio::serial_port serial;
 
     Cube():
-        verBufLayout{{gli::D3, gli::Norm_FALSE}},
+        verBufLayout{gli::LayoutElement{gli::D3, gli::Norm_FALSE}},
         io{},
         serial{io}
     {
@@ -217,7 +241,7 @@ struct Cube{
 
         draw_square_with_color(glm::vec4(1.0, 0.0, 0.0, 1.0));
         draw_square_with_color(glm::vec4(0.0, 1.0, 0.0, 1.0));
-        draw_square_with_color(glm::vec4(0.0, 0.0, 1.0, 1.0));   
+        draw_square_with_color(glm::vec4(0.0, 0.0, 1.0, 1.0));
     }
 
     void updateOrientation(){
@@ -239,7 +263,7 @@ struct Cube{
         asio::read(serial, asio::buffer(&(gyro),16));
 
         // Re-interpret the data
-        std::unique_lock orientation_lock(orientation_mutex);
+        const std::lock_guard lck(orientation_mutex);
         orientation.x = gyro.y;
         orientation.y = gyro.z;
         orientation.z = gyro.x;
@@ -248,13 +272,8 @@ struct Cube{
 
     void readDataFromPort(){
         try{
-            std::unique_lock keepRunning_lock(keepRunning_mutex);
-
-            while(keepRunning){
-                keepRunning_lock.unlock();
+            while(keepRunning)
                 updateOrientation();
-                keepRunning_lock.lock();
-            }
         }catch(...){
             teptr = std::current_exception();
         }
@@ -262,54 +281,51 @@ struct Cube{
 
 };
 
+static int get_appropriate_window_dimension(){
+
+    SDL_DisplayMode dm;
+
+    if (SDL_GetDesktopDisplayMode(0, &dm) != 0)
+        throw std::runtime_error(SDL_GetError());
+
+    return int((float)std::min(dm.h, dm.w) * 3.f/4.f);
+    
+}
+
 int main(int argc, const char* argv[]){
 
     if(argc < 2){
-        SDL_Log("Please Enter Serial Port\n");
+        std::printf("Please Enter Serial Port\n");
         return 1;
     }
 
-    try{ gli::initialize(3,3); }
+    try{
+        gli::initialize(3,3);
+    }
     catch(std::exception& ex){
-        printf("%s occured! Cannot initialize GLider\n", typeid(ex).name());
-        printf(ex.what());
+        std::printf("%s occured! Cannot initialize GLider\n", typeid(ex).name());
+        std::printf(ex.what());
         return 1;
     }
 
     int return_value = 0;
 
     try{
-
-        SDL_DisplayMode dm;
-
-        if (SDL_GetDesktopDisplayMode(0, &dm) != 0)
-            throw std::runtime_error(SDL_GetError());
-
-        int q = std::min(dm.h, dm.w) * 3.f/4.f;
-        dm.h = dm.w = q;
-
-        gli::OpenGLWindow window{"Cube", dm.w, dm.h};
+        
+        int dim = get_appropriate_window_dimension();
+        gli::OpenGLWindow window{"Cube", dim, dim};
         
         SDL_Log("GLVerion: %d.%d\n", GLVersion.major, GLVersion.minor);
 
         Cube cube;
         cube.setupSerial(argv[1]);
 
-        SDL_Log("Cube Created\n");
-
-        {
-            int buffers, samples;
-            SDL_GL_GetAttribute( SDL_GL_MULTISAMPLEBUFFERS, &buffers );
-            SDL_GL_GetAttribute( SDL_GL_MULTISAMPLESAMPLES, &samples );
-            SDL_Log("buf = %d, samples = %d\n", buffers, samples);
-        }
-
         // Setup MVP =============================
 
         glm::mat4 mvp = 
             glm::perspective(
-                70.f*3.14159f/180.f,
-                (float)dm.w/(float)dm.h,
+                70.f*3.14159f/180.f,    // fovy
+                1.f,                    // aspect_ratio (1 for square)
                 0.001f, 1000.f
             )*glm::lookAt(
                 glm::vec3(0.f, 0.f, 5.f),   // Looking from
@@ -329,36 +345,29 @@ int main(int argc, const char* argv[]){
         SDL_Event event;
 
         /* Loop until the user closes the window */
-        for (
+        for(
             std::unique_lock
-                keepRunning_lock(keepRunning_mutex),
                 orientation_lock(cube.orientation_mutex, std::defer_lock);
             keepRunning;
         ){
-            keepRunning_lock.unlock();
 
             orientation_lock.lock();
             cube.shaders.setUniform("orientation", cube.orientation);
             orientation_lock.unlock();
-            
-            /* Render here */
+
             gli::clear(gli::ColorBufferBit | gli::DepthBufferBit);
 
             cube.draw();
 
-            /* Swap front and back buffers */
             window.swap();
 
-            /* Poll for and process events */
             while(SDL_PollEvent(&event)){
                 
                 #define shiftModifiersActived event.key.keysym.mod & KMOD_SHIFT
 
                 switch(event.type){
                 case SDL_QUIT:
-                    keepRunning_mutex.lock();
                     keepRunning = false;
-                    keepRunning_mutex.unlock();
                     break;
                 case SDL_KEYDOWN:
                     if(event.key.keysym.sym == SDLK_SPACE)
@@ -383,21 +392,19 @@ int main(int argc, const char* argv[]){
                 );
                 fps_print = std::chrono::steady_clock::now();
             }
-
-            keepRunning_lock.lock();
             
-        } // while(keepRunning)
+        } // for(;keepRunning;)
 
         readingThread.join();
 
         if(teptr) std::rethrow_exception(teptr);
 
     }catch(const std::exception& ex){
-        printf("%s occured!\n", typeid(ex).name());
-        printf(ex.what());
+        std::printf("%s occured!\n", typeid(ex).name());
+        std::printf(ex.what());
         return_value = 2;
     }catch(...){
-        printf("Unknown Error Occured!");
+        std::printf("Unknown Error Occured!");
         return_value = 3;
     }
 

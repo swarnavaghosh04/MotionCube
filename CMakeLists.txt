@@ -12,12 +12,6 @@ if(NOT CMAKE_BUILD_TYPE)
 	)
 endif()
 
-if(MSVC)
-	set(CMAKE_CXX_FLAGS_RELEASE "/O2")
-else()
-	set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-endif()
-
 if(NOT APPLE)
 	set(CMAKE_INSTALL_RPATH $ORIGIN)
 endif()

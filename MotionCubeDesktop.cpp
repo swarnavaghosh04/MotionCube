@@ -20,8 +20,7 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-===============================================
-*/
+===============================================*/
 
 #include <GLider/GLider.hpp>
 #include <asio.hpp>
@@ -337,7 +336,7 @@ int main(int argc, const char* argv[]){
         
         cube.shaders.setUniform("u_mat", mvp, false);
 
-        GL_CALL(glDepthRange(0.01, 1000));
+        gli::depthRange(0.01, 1000.0);
 
         std::thread readingThread(&Cube::readDataFromPort, std::ref(cube));
         

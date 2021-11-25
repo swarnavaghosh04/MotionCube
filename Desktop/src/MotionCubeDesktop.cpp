@@ -22,7 +22,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ===============================================*/
 
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include <GLider/GLider.hpp>
+#include <glm/gtx/transform.hpp>
 #include <asio.hpp>
 #include <cstdio>
 #include <thread>
@@ -30,6 +33,7 @@ THE SOFTWARE.
 #include <array>
 #include <chrono>
 #include <stdexcept>
+#include "MySDL.hpp"
 
 std::atomic<bool> keepRunning{true};
 
@@ -113,10 +117,10 @@ struct Cube{
     std::array<unsigned char, 6*6>   indexBufData;
 
     gli::VertexArray                        vertexArray;
-    const std::array<gli::LayoutElement,1>  verBufLayout;
+    // const std::array<gli::LayoutElement,1>  verBufLayout;
     gli::Buffer<gli::VertexBuffer>          vertexBuffer;
     gli::Buffer<gli::IndexBuffer>           indexBuffer;
-    gli::Shaders                            shaders;
+    gli::ShaderProgram                      shaders;
     glm::vec4                               orientation;
     std::mutex                              orientation_mutex;
 
@@ -124,15 +128,17 @@ struct Cube{
     asio::serial_port serial;
 
     Cube():
-        verBufLayout{gli::LayoutElement{gli::D3, gli::Norm_FALSE}},
+        // verBufLayout{gli::LayoutElement{gli::D3, gli::Norm_FALSE}},
         io{},
         serial{io}
     {
         SDL_Log("Cube Init\n");
         generateVertices(2.f,0.5f,1.f, glm::vec3(0,0,0), vertexBufData, indexBufData);
-        vertexBuffer.feedData<float>(vertexBufData, gli::UseStaticDraw);
-        indexBuffer.feedData<unsigned char>(indexBufData, gli::UseStaticDraw);
-        vertexArray.readBufferData<float>(vertexBuffer, verBufLayout);
+        vertexBuffer.feedData(vertexBufData, gli::UseStaticDraw);
+        indexBuffer.feedData(indexBufData, gli::UseStaticDraw);
+        gli::Layout layout(1);
+        layout.push<float>(gli::D3, false);
+        vertexArray.readBufferData(vertexBuffer, layout);
         shaders.compileString(gli::VertexShader, vertexShader);
         shaders.compileString(gli::FragmentShader, fragmentShader);
         shaders.link();
@@ -300,21 +306,25 @@ int main(int argc, const char* argv[]){
         return 1;
     }
 
-    try{
-        gli::initialize(3,3);
-    }
-    catch(std::exception& ex){
-        std::printf("%s occured! Cannot initialize GLider\n", typeid(ex).name());
-        std::printf(ex.what());
-        return 1;
-    }
+    // try{
+    //     gli::initialize(3,3);
+    // }
+    // catch(std::exception& ex){
+    //     std::printf("%s occured! Cannot initialize GLider\n", typeid(ex).name());
+    //     std::printf(ex.what());
+    //     return 1;
+    // }
 
     int return_value = 0;
 
     try{
         
+        SDL sdl(3,3);
+
         int dim = get_appropriate_window_dimension();
-        gli::OpenGLWindow window{"Cube", dim, dim};
+        SDL::OpenGLWindow window{"Cube", dim, dim};
+
+        gli::initialize(SDL_GL_GetProcAddress);
         
         SDL_Log("GLVerion: %d.%d\n", GLVersion.major, GLVersion.minor);
 
@@ -408,8 +418,7 @@ int main(int argc, const char* argv[]){
         std::printf("Unknown Error Occured!");
         return_value = 3;
     }
-
-    gli::quit();
+    
     return return_value;
 
 }

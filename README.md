@@ -1,6 +1,6 @@
 # MotionCube #
 
-![](https://raw.githubusercontent.com/swarnavaghosh04/MotionCube/main/resources/MotionCube.gif)
+![](https://raw.githubusercontent.com/swarnavaghosh04/MotionCube/res/MotionCube.gif)
 
 ## Dependencies
 

@@ -41,7 +41,7 @@ string(
     APPEND _opts
     "$<IF:$<CXX_COMPILER_ID:MSVC>,"
         "/W4;$<$<CONFIG:RELEASE>:/O2>,"
-        "-Wall;-Wextra;-Werror;"
+        "-Wall;-Wextra;"
             "$<$<CONFIG:RELEASE>:-O3>"
     ">"
 )
@@ -50,5 +50,5 @@ add_compile_options("${_opts}")
 add_subdirectory(src)
 
 install(
-	TARGETS MotionCube
+	TARGETS MotionCubeDesktop TestData
 )

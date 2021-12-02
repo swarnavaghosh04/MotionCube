@@ -117,7 +117,6 @@ struct Cube{
     std::array<unsigned char, 6*6>   indexBufData;
 
     gli::VertexArray                        vertexArray;
-    // const std::array<gli::LayoutElement,1>  verBufLayout;
     gli::Buffer<gli::VertexBuffer>          vertexBuffer;
     gli::Buffer<gli::IndexBuffer>           indexBuffer;
     gli::ShaderProgram                      shaders;
@@ -128,7 +127,6 @@ struct Cube{
     asio::serial_port serial;
 
     Cube():
-        // verBufLayout{gli::LayoutElement{gli::D3, gli::Norm_FALSE}},
         io{},
         serial{io}
     {
@@ -193,6 +191,7 @@ struct Cube{
     }
 
     void setupSerial(const char* port){
+
         serial.open(port);
         if(!serial.is_open())
             throw std::runtime_error("Serial cannot be opened");
@@ -221,8 +220,13 @@ struct Cube{
 
         SDL_Delay(100);
         char c;
+        SDL_Log("Trying to contact...");
         asio::read(serial, asio::buffer(&c, 1));
-        if(c < 0) throw std::runtime_error("Cannot Initialize MPU DMP");
+        while(c != 0)
+            asio::read(serial, asio::buffer(&c, 1));
+        asio::read(serial, asio::buffer(&c, 1));
+        if(c != 0) throw std::runtime_error("Cannot Initialize MPU DMP");
+        SDL_Log("MPU DMP Initialized");
     }
 
     void draw()
@@ -267,7 +271,7 @@ struct Cube{
         // Get the data
         static constexpr const char c = 1;
         asio::write(serial, asio::buffer(&c, 1));
-        asio::read(serial, asio::buffer(&(gyro),16));
+        asio::read(serial, asio::buffer(&gyro, sizeof(gyro)));
 
         // Re-interpret the data
         const std::lock_guard lck(orientation_mutex);
@@ -306,15 +310,6 @@ int main(int argc, const char* argv[]){
         return 1;
     }
 
-    // try{
-    //     gli::initialize(3,3);
-    // }
-    // catch(std::exception& ex){
-    //     std::printf("%s occured! Cannot initialize GLider\n", typeid(ex).name());
-    //     std::printf(ex.what());
-    //     return 1;
-    // }
-
     int return_value = 0;
 
     try{
@@ -325,6 +320,9 @@ int main(int argc, const char* argv[]){
         SDL::OpenGLWindow window{"Cube", dim, dim};
 
         gli::initialize(SDL_GL_GetProcAddress);
+
+        gli::enable(gli::Capability_NI::DepthTest);
+        gli::depthRange(0.01, 1000.0);
         
         SDL_Log("GLVerion: %d.%d\n", GLVersion.major, GLVersion.minor);
 
@@ -366,6 +364,8 @@ int main(int argc, const char* argv[]){
             cube.shaders.setUniform("orientation", cube.orientation);
             orientation_lock.unlock();
 
+            // cube.shaders.setUniform("orientation", glm::vec4(0,0,0,1));
+
             gli::clear(gli::ColorBufferBit | gli::DepthBufferBit);
 
             cube.draw();
@@ -388,7 +388,7 @@ int main(int argc, const char* argv[]){
 
                 #undef shiftModifiersActived
 
-            } // while(SDL_PollEvent(&event))
+            }
 
             fps.compute();
 

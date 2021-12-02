@@ -39,11 +39,13 @@ cd ..
 
 5. Build and install desktop application:
 
-	cd MotionCubeDesktop
-	mkdir build && cd build
-	cmake ..
-	cmake --build .
-	cmake --install . --prefix "$HOME/MotionCubeDesktop"
+```
+cd MotionCubeDesktop
+mkdir build && cd build
+cmake ..
+cmake --build .
+cmake --install . --prefix "$HOME/MotionCubeDesktop"
+```
 
 6. Run desktop application with serial port as argument:
 

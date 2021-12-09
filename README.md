@@ -12,17 +12,18 @@
 ## Installation
 
 1. Install GLM, SDL2, Asio (non-Boost), and Python-pip:
-
 ```
 # Archlinux:
 sudo pacman -Su glm sdl2 asio python-pip cmake ninja-build
 
 # Debian:
-sudo apt-get libglm-dev libsdl2-dev libasio-dev python-pip cmake ninja
+sudo apt install libglm-dev libsdl2-dev libasio-dev python-pip cmake ninja
+
+# MSYS:
+pacman -Su $MINGW_PACKAGE_PREFIX-glm $MINGW_PACKAGE_PREFIX-SDL2 $MINGW_PACKAGE_PREFIX-asio $MINGW_PACKAGE_PREFIX-python-pip $MINGW_PACKAGE_PREFIX-cmake $MINGW_PACKAGE_PREFIX-ninja
 ```
 
 2. Install PlatformIO CLI Core (if you do not have PlatformIO IDE):
-
 ```
 pip install platformio
 ```
@@ -30,17 +31,15 @@ pip install platformio
 3. Connect Arduino to computer
 
 4. Build and upload to Arduino:
-
 ```
-cd MotionCubeArduino
+cd Arduino
 pio run
 cd ..
 ```
 
 5. Build and install desktop application:
-
 ```
-cd MotionCubeDesktop
+cd Desktop
 mkdir build && cd build
 cmake ..
 cmake --build .
@@ -48,7 +47,6 @@ cmake --install . --prefix "$HOME/MotionCube"
 ```
 
 6. Run desktop application with serial port as argument:
-
 ```
 cd $HOME/MotionCube/bin
 ./MotionCube ARDUINO_SERIAL_PORT
@@ -59,3 +57,4 @@ MotionCube COM3
 # Linux Example
 ./MotionCube /dev/ttyACM0
 ```
+Note: the arduino serial port should be mentioned on the PlatformIO output stream when uploading.

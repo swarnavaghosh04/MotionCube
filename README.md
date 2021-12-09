@@ -44,18 +44,18 @@ cd MotionCubeDesktop
 mkdir build && cd build
 cmake ..
 cmake --build .
-cmake --install . --prefix "$HOME/MotionCubeDesktop"
+cmake --install . --prefix "$HOME/MotionCube"
 ```
 
 6. Run desktop application with serial port as argument:
 
 ```
-cd $HOME/MotionCubeDesktop
-./MotionCubeDesktop ARDUINO_SERIAL_PORT
+cd $HOME/MotionCube/bin
+./MotionCube ARDUINO_SERIAL_PORT
 
 # Windows Example
-MotionCubeDesktop COM3
+MotionCube COM3
 
 # Linux Example
-./MotionCubeDesktop /dev/ttyACM0
+./MotionCube /dev/ttyACM0
 ```

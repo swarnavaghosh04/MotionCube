@@ -33,6 +33,7 @@ THE SOFTWARE.
 #include <array>
 #include <chrono>
 #include <stdexcept>
+#include <filesystem>
 #include "MySDL.hpp"
 
 std::atomic<bool> keepRunning{true};
@@ -40,78 +41,6 @@ std::atomic<bool> keepRunning{true};
 static std::exception_ptr teptr = nullptr;
 
 struct Cube{
-
-    static constexpr const char* const vertexShader = R"CODE(
-        #version 330 core
-
-        layout(location=0) in vec4 position;
-
-        uniform mat4 u_mat;
-        uniform vec4 orientation;
-        uniform vec4 def_orientation;
-
-        vec4 quat_mult(vec4 a, vec4 b)
-        {
-            return vec4(
-                ((a.w*b.x) + (a.x*b.w) + (a.y*b.z) - (a.z*b.y)), // x
-                ((a.w*b.y) - (a.x*b.z) + (a.y*b.w) + (a.z*b.x)), // y
-                ((a.w*b.z) + (a.x*b.y) - (a.y*b.x) + (a.z*b.w)), // z
-                ((a.w*b.w) - (a.x*b.x) - (a.y*b.y) - (a.z*b.z))  // w
-            );
-        }
-
-        vec4 quat_conj(vec4 q)
-        {
-            return vec4(-q.x, -q.y, -q.z, q.w);
-        }
-
-        vec4 quat_inv(vec4 q)
-        {
-            float mag_sqr = q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w;
-            return quat_conj(q)/mag_sqr;
-        }
-
-        vec4 quat_rot(float angle, vec3 axis){
-            float half_angle = angle/2;
-            float sin_half_angle = sin(half_angle);
-            return vec4(
-                axis.x * sin_half_angle,
-                axis.y * sin_half_angle,
-                axis.z * sin_half_angle,
-                cos(half_angle)
-            );
-        }
-
-        vec4 quat_rot(vec4 quaternion, vec4 rotation){
-            return quat_mult(
-                rotation,
-                quat_mult(
-                    quaternion,
-                    quat_conj(rotation)
-                )
-            );
-        }
-
-        void main(){
-
-            // Calibration
-            vec4 correct_rot = quat_mult(quat_inv(def_orientation), orientation);
-
-            // Actual orientation
-            gl_Position = u_mat * quat_rot(position, correct_rot);
-
-        }
-    )CODE";
-
-    static constexpr const char* const fragmentShader = R"CODE(
-        #version 330 core
-
-        uniform vec4 u_color;
-
-        void main(){
-            gl_FragColor = u_color;
-        }
-    )CODE";
 
     std::array<float,3*8>            vertexBufData;
     std::array<unsigned char, 6*6>   indexBufData;
@@ -126,7 +55,7 @@ struct Cube{
     asio::io_service io;
     asio::serial_port serial;
 
-    Cube():
+    Cube(std::filesystem::path datadir):
         io{},
         serial{io}
     {
@@ -137,8 +66,10 @@ struct Cube{
         gli::Layout layout(1);
         layout.push<float>(gli::D3, false);
         vertexArray.readBufferData(vertexBuffer, layout);
-        shaders.compileString(gli::VertexShader, vertexShader);
-        shaders.compileString(gli::FragmentShader, fragmentShader);
+        auto vertPath = datadir / "vertex.glsl";
+        auto fragPath = datadir / "fragment.glsl";
+        shaders.compileFile(gli::VertexShader, vertPath.string().c_str());
+        shaders.compileFile(gli::FragmentShader, fragPath.string().c_str());
         shaders.link();
         shaders.validate();
         shaders.bind();
@@ -326,7 +257,9 @@ int main(int argc, const char* argv[]){
         
         SDL_Log("GLVerion: %d.%d\n", GLVersion.major, GLVersion.minor);
 
-        Cube cube;
+        auto datadir = std::filesystem::path(argv[0]).replace_filename("../share/MotionCube");
+
+        Cube cube(datadir);
         cube.setupSerial(argv[1]);
 
         // Setup MVP =============================

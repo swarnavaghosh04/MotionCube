@@ -24,7 +24,7 @@ set(RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 add_subdirectory(extern)
 
 find_package(GLider CONFIG REQUIRED)
-find_package(SDL2 CONFIG)
+find_package(SDL3 CONFIG)
 find_package(glm CONFIG REQUIRED)
 find_path(asio_incl NAMES asio.hpp)
 

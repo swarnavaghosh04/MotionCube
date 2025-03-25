@@ -52,7 +52,7 @@ struct Cube{
     glm::vec4                               orientation;
     std::mutex                              orientation_mutex;
 
-    asio::io_service io;
+    asio::io_context io;
     asio::serial_port serial;
 
     Cube(std::filesystem::path datadir):
@@ -150,11 +150,13 @@ struct Cube{
         );
 
         SDL_Delay(100);
-        char c;
+        std::uint8_t c;
         SDL_Log("Trying to contact...");
         asio::read(serial, asio::buffer(&c, 1));
-        while(c != 0)
+        while(c != 0xFF){
+            std::putchar(c);
             asio::read(serial, asio::buffer(&c, 1));
+        }
         asio::read(serial, asio::buffer(&c, 1));
         if(c != 0) throw std::runtime_error("Cannot Initialize MPU DMP");
         SDL_Log("MPU DMP Initialized");
@@ -210,6 +212,7 @@ struct Cube{
         orientation.y = gyro.z;
         orientation.z = gyro.x;
         orientation.w = gyro.w;
+        std::printf("Update: %10.5f | %10.5f | %10.5f | %10.5f\n", orientation.x, orientation.y, orientation.z, orientation.w);
     }
 
     void readDataFromPort(){
@@ -225,12 +228,12 @@ struct Cube{
 
 static int get_appropriate_window_dimension(){
 
-    SDL_DisplayMode dm;
+    const SDL_DisplayMode* dm = SDL_GetDesktopDisplayMode(1);
 
-    if (SDL_GetDesktopDisplayMode(0, &dm) != 0)
+    if (dm == nullptr)
         throw std::runtime_error(SDL_GetError());
 
-    return int((float)std::min(dm.h, dm.w) * 3.f/4.f);
+    return int((float)std::min(dm->h, dm->w) * 3.f/4.f);
     
 }
 
@@ -254,8 +257,6 @@ int main(int argc, const char* argv[]){
 
         gli::enable(gli::Capability_NI::DepthTest);
         gli::depthRange(0.01, 1000.0);
-        
-        SDL_Log("GLVerion: %d.%d\n", GLVersion.major, GLVersion.minor);
 
         auto datadir = std::filesystem::path(argv[0]).replace_filename("../share/MotionCube");
 
@@ -310,11 +311,11 @@ int main(int argc, const char* argv[]){
                 #define shiftModifiersActived event.key.keysym.mod & KMOD_SHIFT
 
                 switch(event.type){
-                case SDL_QUIT:
+                case SDL_EVENT_QUIT:
                     keepRunning = false;
                     break;
-                case SDL_KEYDOWN:
-                    if(event.key.keysym.sym == SDLK_SPACE)
+                case SDL_EVENT_KEY_DOWN:
+                    if(event.key.key == SDLK_SPACE)
                         cube.shaders.setUniform("def_orientation", cube.orientation);
                     break;
                 }

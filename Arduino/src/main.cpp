@@ -117,7 +117,7 @@ void setup(){
 
     char err = initializeEverything();
 
-    Serial.write((char)0);
+    Serial.write(0xFF);
     Serial.write(err);
 
 }

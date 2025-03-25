@@ -5,7 +5,7 @@
 #include <atomic>
 
 std::atomic<bool> keepRunning = true;
-asio::io_service io;
+asio::io_context io;
 asio::serial_port serial(io);
 struct{
     float w,x,y,z; // arduino data format
@@ -51,11 +51,11 @@ int setupSerialPort(const char* port){
 }
 
 int getDMPInitCode(){
-    char c;
+    std::uint8_t c;
     auto buf = asio::buffer(&c, 1);
     std::puts("Trying to contact...");
     asio::read(serial, buf);
-    while(c != 0){
+    while(c != 0xFF){
         std::putchar(c);
         asio::read(serial, buf);
     }

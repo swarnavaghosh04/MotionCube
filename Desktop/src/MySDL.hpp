@@ -4,7 +4,7 @@
 #define SDL_MAIN_HANDLED
 
 #include <stdexcept>
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 
 #define PRINT_DEBUG(format, ...)\
     SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, format, ##__VA_ARGS__);
@@ -30,7 +30,7 @@ public:
     protected:
         SDL_Renderer *renderer;
     public:
-        Renderer(Window& window, unsigned int rendererFlags = 0);
+        Renderer(Window& window);
         ~Renderer() noexcept;
         Renderer(const Renderer&) = delete;
         Renderer(Renderer&& other) noexcept;
@@ -62,8 +62,7 @@ public:
         OpenGLWindow(
             const char* title,
             int width, int height,
-            unsigned int windowFlags = 0,
-            unsigned int rendererFlags = 0);
+            unsigned int windowFlags = 0);
         void swap() noexcept { SDL_GL_SwapWindow(this->window); }
     };
 

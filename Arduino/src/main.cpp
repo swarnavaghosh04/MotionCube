@@ -39,24 +39,15 @@ THE SOFTWARE.
  * 2       -> INT
 */
 
-#define INTERRUPT_PIN 2  // use pin 2 on Arduino Uno & most boards
-
 MPU6050 mpu;
 
 // MPU control/status vars
-bool dmpReady = false;  // set true if DMP init was successful
-uint8_t mpuIntStatus;   // holds actual interrupt status byte from MPU
 uint8_t devStatus;      // return status after each device operation (0 = success, !0 = error)
 uint16_t packetSize;    // expected DMP packet size (default is 42 bytes)
 uint16_t fifoCount;     // count of all bytes currently in FIFO
 uint8_t fifoBuffer[64]; // FIFO storage buffer
 
 Quaternion qGet, qSend;           // [w, x, y, z]         quaternion container
-
-volatile bool mpuInterrupt = false;
-void dataReadyISR(){
-    mpuInterrupt = true;
-}
 
 void waitTillProceedSignal(){
     while(Serial.available() && Serial.read());
@@ -70,15 +61,15 @@ void waitTillProceedSignal(){
 char initializeEverything(){
 
     mpu.initialize();
-    pinMode(INTERRUPT_PIN, INPUT);
+    // pinMode(INTERRUPT_PIN, INPUT);
     if(!mpu.testConnection()) return 1;
 
     devStatus = mpu.dmpInitialize();
 
     // supply your own gyro offsets here, scaled for min sensitivity
-    mpu.setXGyroOffset(220);
-    mpu.setYGyroOffset(76);
-    mpu.setZGyroOffset(-85);
+    mpu.setXGyroOffset(-300);
+    mpu.setYGyroOffset(-40);
+    mpu.setZGyroOffset(-230);
     mpu.setZAccelOffset(1788); // 1688 factory default for my test chip
 
     if(devStatus != 0) return 2;
@@ -87,11 +78,6 @@ char initializeEverything(){
     mpu.CalibrateGyro(6);
 
     mpu.setDMPEnabled(true);
-
-    attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), dataReadyISR, RISING);
-    mpuIntStatus = mpu.getIntStatus();
-
-    dmpReady = true;
 
     // get expected DMP packet size for later comparison
     packetSize = mpu.dmpGetFIFOPacketSize();
@@ -112,9 +98,6 @@ void setup(){
     Serial.begin(115200, SERIAL_8E1);
     while(!Serial); // wait for Leonardo enumeration, others continue immediately
 
-    Wire.begin();
-    Wire.setClock(400000);
-
     char err = initializeEverything();
 
     Serial.write(0xFF);
@@ -124,7 +107,7 @@ void setup(){
 
 void loop(){
 
-    if (!dmpReady) return;
+    if (!mpu.dmpPacketAvailable()) return;
 
     if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) {
         if(!mpu.dmpGetQuaternion(&qGet, fifoBuffer))
@@ -135,6 +118,7 @@ void loop(){
         do Serial.read();
         while(Serial.available());
         Serial.write((const char*)&qSend, sizeof(qSend));
+        // Serial.printf("%5.5f i + %5.5f j + %5.5f k + %5.5f\n", qSend.x, qSend.y, qSend.z, qSend.w);
     }
     
 }

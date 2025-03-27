@@ -1,4 +1,7 @@
-bin
-build
-lib/GLider
+# CMake
+build/
+bin/
+lib/
+
+# Platform
 .vscode

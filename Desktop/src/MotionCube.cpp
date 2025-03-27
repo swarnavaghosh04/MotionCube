@@ -26,6 +26,7 @@ THE SOFTWARE.
 
 #include <GLider/GLider.hpp>
 #include <glm/gtx/transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <asio.hpp>
 #include <cstdio>
 #include <thread>
@@ -49,7 +50,7 @@ struct Cube{
     gli::Buffer<gli::VertexBuffer>          vertexBuffer;
     gli::Buffer<gli::IndexBuffer>           indexBuffer;
     gli::ShaderProgram                      shaders;
-    glm::vec4                               orientation;
+    glm::quat                               orientation;
     std::mutex                              orientation_mutex;
 
     asio::io_context io;
@@ -295,7 +296,7 @@ int main(int argc, const char* argv[]){
         ){
 
             orientation_lock.lock();
-            cube.shaders.setUniform("orientation", cube.orientation);
+            cube.shaders.setUniform("orientation", *(glm::vec4*)&cube.orientation);
             orientation_lock.unlock();
 
             // cube.shaders.setUniform("orientation", glm::vec4(0,0,0,1));
@@ -316,7 +317,7 @@ int main(int argc, const char* argv[]){
                     break;
                 case SDL_EVENT_KEY_DOWN:
                     if(event.key.key == SDLK_SPACE)
-                        cube.shaders.setUniform("def_orientation", cube.orientation);
+                        cube.shaders.setUniform("def_orientation", *(glm::vec4*)&cube.orientation);
                     break;
                 }
 
